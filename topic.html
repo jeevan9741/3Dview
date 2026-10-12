@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="hi-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tech Lab 3D</title>
+<meta name="theme-color" content="#ff5a3c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="topic">
+<header class="top">
+  <div class="left">
+    <a class="round-btn" href="index.html" id="homeBtn">🏠</a>
+    <div>
+      <h1 id="topicTitle">Tech Lab 3D</h1>
+      <p id="topicSub"></p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="langbar" id="langbar"></div>
+    <button class="round-btn" id="sizeBtn" aria-pressed="false">Aa</button>
+    <button class="round-btn" id="themeBtn">🌗</button>
+  </div>
+</header>
+
+<main>
+  <section id="stage" aria-label="3D">
+    <video id="camVideo" playsinline muted autoplay aria-hidden="true"></video>
+    <canvas id="c" tabindex="0"></canvas>
+    <div id="hint"></div>
+    <div id="status" role="status" aria-live="polite"></div>
+    <div id="tip"></div>
+    <div id="controls"></div>
+    <div id="nogl"></div>
+  </section>
+
+  <aside id="panel">
+    <div role="tablist">
+      <button role="tab" id="tabLearn" aria-selected="true" aria-controls="paneLearn"></button>
+      <button role="tab" id="tabRevise" aria-selected="false" aria-controls="paneRevise" hidden></button>
+      <button role="tab" id="tabQuiz" aria-selected="false" aria-controls="paneQuiz"></button>
+    </div>
+    <div class="pane" id="paneLearn" role="tabpanel" aria-labelledby="tabLearn">
+      <p class="progress-line" id="progressLine"></p>
+      <div id="chips"></div>
+      <div id="info" class="info" aria-live="polite"></div>
+    </div>
+    <div class="pane revise" id="paneRevise" role="tabpanel" aria-labelledby="tabRevise" hidden></div>
+    <div class="pane" id="paneQuiz" role="tabpanel" aria-labelledby="tabQuiz" hidden>
+      <div id="quizBody"></div>
+    </div>
+  </aside>
+</main>
+
+<!-- AR ke waqt camera ke upar dikhne wala hissa -->
+<div id="arOverlay">
+  <div id="arTop"><div id="arMsg" role="status"></div><button class="act" id="arExit"></button></div>
+  <div id="arBottom"><div id="arInfo" aria-live="polite"></div></div>
+</div>
+
+<script src="js/lib/three.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/bio.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ar.js"></script>
+<script src="js/fun.js"></script>
+<script>
+(function () {
+  "use strict";
+  var id = new URLSearchParams(location.search).get("t") || "computer";
+  var meta = TL.topicById(id);
+  if (!meta) { location.replace("index.html"); return; }
+  /* Biology topics ko pehle bio-kit.js (cell, molecule, flow jaise saanjhe 3D tukde) chahiye */
+  var files = (meta.subject === "bio" ? ["js/bio-kit.js"] : []).concat(["js/topics/" + id + ".js"]);
+  function next() {
+    var src = files.shift();
+    if (!src) return;
+    var s = document.createElement("script");
+    s.src = src;
+    s.onload = next;
+    s.onerror = function () { document.getElementById("info").textContent = TL.u("load_fail"); };
+    document.body.appendChild(s);
+  }
+  next();
+})();
+</script>
+</body>
+</html>

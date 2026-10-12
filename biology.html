@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="hi-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Biology Lab 3D</title>
+<meta name="description" content="3D models se biology seekho: paudhe ke bhaag, koshika, prakash sanshleshan, phool, jantu jagat, dil aur DNA. English, हिंदी, मराठी, ಕನ್ನಡ.">
+<meta name="theme-color" content="#ff5a3c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="home bio">
+<header class="top">
+  <div class="left">
+    <a class="round-btn" href="index.html" id="homeBtn">🏠</a>
+    <div>
+      <h1 data-u="bio_title"></h1>
+      <p data-u="bio_sub"></p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="langbar" id="langbar"></div>
+    <button class="round-btn" id="sizeBtn" aria-pressed="false">Aa</button>
+    <button class="round-btn" id="themeBtn">🌗</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h2 data-u="bio_h2"></h2>
+    <p data-u="bio_p"></p>
+    <p class="kid-line" id="kidLine"></p>
+  </section>
+
+  <section class="branches" id="branches" aria-label="Botany, Zoology"></section>
+
+  <section class="filters" aria-label="Filters">
+    <div class="seg" id="branchSeg" role="group"></div>
+    <div class="search">
+      <span aria-hidden="true">🔍</span>
+      <input type="search" id="q" autocomplete="off">
+    </div>
+    <div class="seg" id="levelSeg" role="group"></div>
+    <label class="check"><input type="checkbox" id="planned"> <span data-u="show_planned"></span></label>
+  </section>
+
+  <section id="recommend" aria-live="polite"></section>
+  <section id="grid" class="path" aria-live="polite"></section>
+  <p class="path-note" data-u="path_note"></p>
+
+  <p class="foot">
+    <a href="index.html" data-u="tech_h3"></a>
+    <a href="teacher.html" data-u="teacher_link"></a>
+  </p>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/bio.js"></script>
+<script src="js/fun.js"></script>
+<script>
+(function () {
+  "use strict";
+  var esc = TL.esc;
+  var FKEY = "techlab3d.bio.filters";
+  var f = { branch: "all", level: 0, planned: true };
+  try { var sv = JSON.parse(window.localStorage.getItem(FKEY)); if (sv) f = Object.assign(f, sv); } catch (e) {}
+  var qs = new URLSearchParams(location.search).get("b");
+  if (qs === "botany" || qs === "zoology") f.branch = qs;
+  var query = "";
+
+  function saveF() { try { window.localStorage.setItem(FKEY, JSON.stringify(f)); } catch (e) {} }
+  function title(t) { return TL.pick(t.title); }
+  function status(t) { return t.ready ? TL.topicStatus(t.id) : "soon"; }
+  function preDone(t) {
+    return t.pre.every(function (id) { var p = TL.bioById(id); return !p || !p.ready || status(p) === "done"; });
+  }
+
+  /* Search: abhi ki bhasha + English + keywords, chhote-bade akshar ka fark nahi */
+  function matches(t) {
+    if (f.branch !== "all" && t.branch !== f.branch) return false;
+    if (f.level && t.level !== f.level) return false;
+    if (!t.ready && !f.planned) return false;
+    if (!query) return true;
+    var hay = [title(t), TL.pick(t.desc), t.title.en, t.desc.en, t.keys].join(" ").toLowerCase();
+    return query.split(/\s+/).every(function (w) { return hay.indexOf(w) !== -1; });
+  }
+
+  function card(t, extra) {
+    var st = status(t);
+    var pre = t.pre.map(TL.bioById).filter(Boolean);
+    var preHtml = pre.length ? '<p class="pre">' + esc(TL.u("learn_first")) + " " + pre.map(function (p) {
+      return p.emoji + " " + esc(title(p)) + (status(p) === "done" ? ' <span class="ok">✓</span>' : "");
+    }).join(", ") + "</p>" : "";
+    var head = '<span class="card-top"><span class="emoji" aria-hidden="true">' + t.emoji + "</span>" +
+      '<span class="lvl lvl' + t.level + '">' + esc(TL.u("lvl_" + t.level)) + "</span></span>" +
+      "<h3>" + esc(title(t)) + "</h3><p>" + esc(TL.pick(t.desc)) + "</p>" + preHtml;
+    if (!t.ready) {
+      return '<div class="card planned' + (extra || "") + '" aria-disabled="true">' + head +
+        '<span class="meta"><span class="st st-soon">' + esc(TL.u("coming_soon")) + "</span></span></div>";
+    }
+    var s = TL.starsFor(t.id);
+    return '<a class="card' + (extra || "") + '" href="topic.html?t=' + t.id + '">' + head +
+      '<span class="meta"><span class="st st-' + st + '">' + esc(TL.u("st_" + st)) + "</span>" +
+      '<span class="stars" aria-label="' + s + ' / 3 ★">' + TL.starsHtml(s) + "</span></span></a>";
+  }
+
+  function renderBranches() {
+    var html = "";
+    ["botany", "zoology"].forEach(function (br) {
+      var ready = TL.BIO.filter(function (t) { return t.branch === br && t.ready; });
+      var done = ready.filter(function (t) { return status(t) === "done"; }).length;
+      var pct = ready.length ? Math.round(done / ready.length * 100) : 0;
+      html += '<button class="branch ' + br + '" data-b="' + br + '" aria-pressed="' + (f.branch === br) + '">' +
+        "<b>" + esc(TL.u("br_" + br)) + "</b><small>" + esc(TL.u("br_" + br + "_d")) + " · " +
+        esc(TL.u("topics_count", TL.BIO.filter(function (t) { return t.branch === br; }).length)) + "</small>" +
+        '<span class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + ready.length + '" aria-valuenow="' + done + '">' +
+        '<span style="width:' + pct + '%"></span></span>' +
+        "<small>" + esc(TL.u("branch_progress", TL.u("br_" + br), done, ready.length)) + "</small></button>";
+    });
+    var el = document.getElementById("branches");
+    el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll(".branch"), function (b) {
+      b.addEventListener("click", function () {
+        var br = b.getAttribute("data-b");
+        f.branch = f.branch === br ? "all" : br;
+        saveF(); render();
+      });
+    });
+  }
+
+  function seg(id, items, cur, onPick, label) {
+    var el = document.getElementById(id);
+    el.setAttribute("aria-label", label);
+    el.innerHTML = items.map(function (it) {
+      return '<button type="button" data-v="' + it[0] + '" aria-pressed="' + (String(it[0]) === String(cur)) + '">' + esc(it[1]) + "</button>";
+    }).join("");
+    Array.prototype.forEach.call(el.querySelectorAll("button"), function (b) {
+      b.addEventListener("click", function () { onPick(b.getAttribute("data-v")); });
+    });
+  }
+
+  function renderFilters() {
+    seg("branchSeg", [["all", TL.u("br_all")], ["botany", TL.u("br_botany")], ["zoology", TL.u("br_zoology")]], f.branch,
+      function (v) { f.branch = v; saveF(); render(); }, TL.u("filter_branch"));
+    seg("levelSeg", [[0, TL.u("lvl_all")], [1, TL.u("lvl_1")], [2, TL.u("lvl_2")], [3, TL.u("lvl_3")]], f.level,
+      function (v) { f.level = +v; saveF(); render(); }, TL.u("filter_level"));
+    var q = document.getElementById("q");
+    q.placeholder = TL.u("search_ph");
+    q.setAttribute("aria-label", TL.u("search_label"));
+    document.getElementById("planned").checked = !!f.planned;
+  }
+
+  /* Agla sujhaav: raaste me pehla adhoora topic jiske pehle wale topic poore ho gaye */
+  function renderRecommend() {
+    var path = TL.bioPath(f.branch === "all" ? null : f.branch).filter(function (t) { return t.ready; });
+    var todo = path.filter(function (t) { return status(t) !== "done"; });
+    var pick = todo.filter(preDone)[0] || todo[0];
+    var el = document.getElementById("recommend");
+    if (!path.length) { el.innerHTML = ""; return; }
+    el.innerHTML = pick ? "<h3>" + esc(TL.u("recommended")) + '</h3><div class="rec">' + card(pick, " rec-card") + "</div>"
+                        : '<p class="all-done">' + esc(TL.u("all_done")) + "</p>";
+  }
+
+  function renderPath() {
+    var html = "", any = false;
+    var branches = f.branch === "all" ? ["botany", "zoology"] : [f.branch];
+    branches.forEach(function (br) {
+      var bh = "";
+      [1, 2, 3].forEach(function (lv) {
+        var list = TL.bioPath(br).filter(function (t) { return t.level === lv && matches(t); });
+        if (!list.length) return;
+        any = true;
+        bh += '<div class="lvl-row"><h4><span class="step lvl' + lv + '">' + lv + "</span>" + esc(TL.u("lvl_" + lv)) + "</h4>" +
+          '<div class="grid">' + list.map(function (t) { return card(t); }).join("") + "</div></div>";
+      });
+      if (bh) html += '<section class="branch-path ' + br + '"><h3>' + esc(TL.u("br_" + br)) + "</h3>" + bh + "</section>";
+    });
+    document.getElementById("grid").innerHTML = any ? html : '<p class="empty">' + esc(TL.u("no_results")) + "</p>";
+  }
+
+  function render() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-u]"), function (el) {
+      el.textContent = TL.u(el.getAttribute("data-u"));
+    });
+    var home = document.getElementById("homeBtn");
+    home.setAttribute("aria-label", TL.u("home_label"));
+    home.title = TL.u("home_label");
+    document.title = TL.u("bio_title");
+    TL.checkBadges();
+    var kid = TL.currentProfile();
+    var done = TL.BIO.filter(function (t) { return t.ready && status(t) === "done"; }).length;
+    var ready = TL.BIO.filter(function (t) { return t.ready; }).length;
+    document.getElementById("kidLine").innerHTML = kid.avatar + " <b>" + esc(TL.profileName(kid)) + "</b> · " +
+      esc(TL.u("st_done")) + " " + done + " / " + ready;
+    renderBranches();
+    renderFilters();
+    renderRecommend();
+    renderPath();
+  }
+
+  document.getElementById("q").addEventListener("input", function (e) {
+    query = e.target.value.trim().toLowerCase();
+    renderPath();
+  });
+  document.getElementById("planned").addEventListener("change", function (e) {
+    f.planned = e.target.checked; saveF(); renderPath();
+  });
+  TL.buildLangBar(document.getElementById("langbar"));
+  TL.bindThemeButton(document.getElementById("themeBtn"));
+  TL.bindSizeButton(document.getElementById("sizeBtn"));
+  TL.onLang(render);
+  window.addEventListener("pageshow", function () { TL.reloadProfiles(); render(); });
+  render();
+})();
+</script>
+</body>
+</html>

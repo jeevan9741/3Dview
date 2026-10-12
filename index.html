@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="hi-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tech Lab 3D</title>
+<meta name="description" content="3D models se technology aur biology seekho: computer, internet, circuit, robot, coding, GPS, mobile, solar, drone, rocket, paudhe, koshika, dil aur DNA. Hinglish, English, हिंदी, मराठी, ಕನ್ನಡ.">
+<meta name="theme-color" content="#ff5a3c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="home">
+<header class="top">
+  <div class="left">
+    <div>
+      <h1>Tech Lab 3D</h1>
+      <p data-u="home_sub"></p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="langbar" id="langbar"></div>
+    <button class="round-btn" id="sizeBtn" aria-pressed="false">Aa</button>
+    <button class="round-btn" id="themeBtn">🌗</button>
+  </div>
+</header>
+
+<main>
+  <section class="who" aria-labelledby="whoTitle">
+    <h3 id="whoTitle" data-u="who"></h3>
+    <div class="kids" id="kids"></div>
+    <form class="newkid" id="newkid" hidden>
+      <input id="kidName" maxlength="24" autocomplete="off">
+      <div>
+        <p style="margin:0 0 6px;font-weight:700" data-u="pick_avatar"></p>
+        <div class="avatars" id="avatars" role="group"></div>
+      </div>
+      <div class="row">
+        <button type="submit" class="act main" data-u="save"></button>
+        <button type="button" class="act" id="cancelKid" data-u="cancel"></button>
+      </div>
+    </form>
+  </section>
+
+  <section class="hero">
+    <h2 data-u="home_h2"></h2>
+    <p data-u="home_p"></p>
+  </section>
+
+  <a class="bio-banner" href="biology.html">
+    <span class="emoji" aria-hidden="true">🧬</span>
+    <span class="bb-text"><b data-u="bio_card_title"></b><span id="bioDesc"></span></span>
+    <span class="act main" data-u="bio_open"></span>
+  </a>
+
+  <h3 class="sec-h" data-u="tech_h3"></h3>
+  <section class="grid" id="grid" aria-label="Topics"></section>
+
+  <section class="badge-row">
+    <h3 data-u="stars_title"></h3>
+    <p id="badgeText"></p>
+    <h3 style="margin-top:14px"><span data-u="badges_title"></span> · <span id="badgeCount" style="color:var(--muted);font-weight:700"></span></h3>
+    <div class="badges" id="badges"></div>
+    <button class="link-btn" id="resetBtn" data-u="reset_progress"></button>
+  </section>
+
+  <p class="foot"><a href="teacher.html" data-u="teacher_link"></a></p>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/bio.js"></script>
+<script src="js/fun.js"></script>
+<script>
+(function () {
+  "use strict";
+  var grid = document.getElementById("grid");
+  var newAvatar = TL.AVATARS[0];
+
+  function renderKids() {
+    var kids = document.getElementById("kids");
+    var cur = TL.currentProfile();
+    kids.innerHTML = "";
+    TL.profiles().forEach(function (p) {
+      var b = document.createElement("button");
+      b.className = "kid";
+      b.setAttribute("aria-pressed", String(p.id === cur.id));
+      b.innerHTML = '<span class="av" aria-hidden="true">' + p.avatar + "</span>" + TL.esc(TL.profileName(p)) +
+        ' <span class="stars" style="font-size:.85rem">★' + TL.totalStars(p) + "</span>";
+      b.addEventListener("click", function () { TL.setCurrentProfile(p.id); render(); });
+      kids.appendChild(b);
+    });
+    var add = document.createElement("button");
+    add.className = "kid add";
+    add.textContent = TL.u("add_child");
+    add.addEventListener("click", function () {
+      var f = document.getElementById("newkid");
+      f.hidden = false;
+      document.getElementById("kidName").focus();
+    });
+    kids.appendChild(add);
+
+    var av = document.getElementById("avatars");
+    av.setAttribute("aria-label", TL.u("pick_avatar"));
+    av.innerHTML = "";
+    TL.AVATARS.forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = a;
+      b.setAttribute("aria-pressed", String(a === newAvatar));
+      b.addEventListener("click", function () { newAvatar = a; renderKids(); });
+      av.appendChild(b);
+    });
+    var input = document.getElementById("kidName");
+    input.placeholder = TL.u("name_ph");
+    input.setAttribute("aria-label", TL.u("name_ph"));
+  }
+
+  function renderBadges() {
+    var pr = TL.currentProfile();
+    var html = "";
+    TL.BADGES.forEach(function (b) {
+      var won = pr.badges.indexOf(b.id) !== -1;
+      html += '<div class="badge' + (won ? " won" : "") + '"' + (won ? "" : ' title="' + TL.esc(TL.u("locked")) + '"') + ">" +
+        '<span class="be" aria-hidden="true">' + b.emoji + "</span><span><b>" + TL.esc(TL.u("b_" + b.id)) + "</b>" +
+        "<small>" + TL.esc(TL.u("d_" + b.id, TL.TOPICS.length, TL.TOPICS.length * 3)) + (won ? "" : " · " + TL.esc(TL.u("locked"))) + "</small></span></div>";
+    });
+    document.getElementById("badges").innerHTML = html;
+    document.getElementById("badgeCount").textContent = TL.u("badges_count", pr.badges.length, TL.BADGES.length);
+  }
+
+  function render() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-u]"), function (el) {
+      el.textContent = TL.u(el.getAttribute("data-u"));
+    });
+    TL.checkBadges();
+    renderKids();
+
+    var html = "", total = 0;
+    TL.TOPICS.forEach(function (t) {
+      var s = TL.starsFor(t.id);
+      total += s;
+      if (t.subject === "bio") return;   /* biology ke cards biology.html par */
+      html +=
+        '<a class="card" href="topic.html?t=' + t.id + '">' +
+          '<span class="emoji" aria-hidden="true">' + t.emoji + "</span>" +
+          "<h3>" + TL.esc(TL.pick(t.title)) + "</h3>" +
+          "<p>" + TL.esc(TL.pick(t.desc)) + "</p>" +
+          '<span class="meta"><span>' + TL.esc(TL.u("open")) + "</span>" +
+          '<span class="stars" aria-label="' + s + ' / 3 ★">' + TL.starsHtml(s) + "</span></span>" +
+        "</a>";
+    });
+    grid.innerHTML = html;
+    document.getElementById("bioDesc").textContent =
+      TL.u("bio_card_desc", TL.TOPICS.filter(function (t) { return t.subject === "bio"; }).length);
+
+    var max = TL.TOPICS.length * 3;
+    var msg = total === 0 ? TL.u("stars_zero", max) :
+              total === max ? TL.u("stars_all", max) : TL.u("stars_some", total, max);
+    document.getElementById("badgeText").textContent = msg;
+    renderBadges();
+  }
+
+  document.getElementById("newkid").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = document.getElementById("kidName").value.trim();
+    if (!name) { document.getElementById("kidName").focus(); return; }
+    TL.addProfile(name, newAvatar);
+    document.getElementById("kidName").value = "";
+    this.hidden = true;
+    render();
+  });
+  document.getElementById("cancelKid").addEventListener("click", function () {
+    document.getElementById("newkid").hidden = true;
+  });
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    TL.resetProgress();
+    render();
+  });
+  TL.buildLangBar(document.getElementById("langbar"));
+  TL.bindThemeButton(document.getElementById("themeBtn"));
+  TL.bindSizeButton(document.getElementById("sizeBtn"));
+  TL.onLang(render);
+  /* Topic se wapas aane par (back button) sab taaza karo */
+  window.addEventListener("pageshow", function () { TL.reloadProfiles(); render(); });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="hi-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tech Lab 3D: Teacher</title>
+<meta name="theme-color" content="#ff5a3c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .tbl-wrap { overflow-x: auto; background: var(--panel); border: 2px solid var(--line); border-radius: 22px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: .95rem; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .9rem; color: var(--muted); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.kidcell { font-weight: 800; white-space: nowrap; }
+  td .sub { display: block; color: var(--muted); font-weight: 500; font-size: .85rem; }
+  .up { color: var(--ok); font-weight: 800; }
+  .summary { font-weight: 700; margin: 14px 0; }
+  .legend { color: var(--muted); margin: 0 0 10px; }
+  .del { font: inherit; font-size: .85rem; cursor: pointer; border: 2px solid var(--line); background: transparent; color: var(--bad); border-radius: 999px; padding: 2px 10px; margin-top: 6px; }
+  .del.sure { border-color: var(--bad); background: var(--bad); color: #fff; }
+</style>
+</head>
+<body class="home">
+<header class="top">
+  <div class="left">
+    <a class="round-btn" href="index.html" id="homeBtn">🏠</a>
+    <div>
+      <h1 data-u="t_title"></h1>
+      <p>Tech Lab 3D</p>
+    </div>
+  </div>
+  <div class="right">
+    <div class="langbar" id="langbar"></div>
+    <button class="round-btn" id="sizeBtn" aria-pressed="false">Aa</button>
+    <button class="round-btn" id="themeBtn">🌗</button>
+  </div>
+</header>
+
+<main>
+  <p data-u="t_intro" style="max-width:70ch"></p>
+  <p class="summary" id="summary"></p>
+  <p class="legend" data-u="t_legend"></p>
+  <div class="tbl-wrap"><table id="tbl"></table></div>
+  <p class="foot">
+    <button class="act main" id="csvBtn" data-u="t_export"></button>
+    <a href="index.html" data-u="t_back"></a>
+  </p>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/bio.js"></script>
+<script>
+(function () {
+  "use strict";
+  var armed = null;   // jis bachche ka "Hatao" ek baar dab chuka hai
+
+  function cell(p) {
+    if (!p || (!p.seen.length && !p.attempts)) return '<span class="sub">—</span>';
+    var html = "👁 " + p.seen.length + "/" + (p.parts || "?");
+    if (p.attempts) {
+      var up = p.best > p.first;
+      html += '<span class="sub">📝 ' + p.first + " → " +
+        (up ? '<span class="up">' + p.best + "</span>" : p.best) + " / " + p.total + " (" + p.attempts + "×)</span>";
+    }
+    return html;
+  }
+
+  function render() {
+    TL.reloadProfiles();
+    Array.prototype.forEach.call(document.querySelectorAll("[data-u]"), function (el) {
+      el.textContent = TL.u(el.getAttribute("data-u"));
+    });
+    var home = document.getElementById("homeBtn");
+    home.setAttribute("aria-label", TL.u("home_label"));
+    home.title = TL.u("home_label");
+
+    var kids = TL.profiles();
+    var head = "<thead><tr><th>" + TL.esc(TL.u("t_child")) + "</th><th>" + TL.esc(TL.u("t_stars")) + "</th>";
+    TL.TOPICS.forEach(function (t) { head += '<th title="' + TL.esc(TL.pick(t.title)) + '">' + t.emoji + " " + TL.esc(TL.pick(t.title)) + "</th>"; });
+    head += "</tr></thead>";
+
+    var body = "<tbody>", firstSum = 0, bestSum = 0, quizzes = 0, any = false;
+    kids.forEach(function (k) {
+      var row = '<tr><td class="kidcell">' + k.avatar + " " + TL.esc(TL.profileName(k)) +
+        '<span class="sub">' + TL.esc(TL.u("t_badges")) + ": " + k.badges.length + "/" + TL.BADGES.length + "</span>" +
+        '<button class="del' + (armed === k.id ? " sure" : "") + '" data-id="' + k.id + '">' +
+        TL.esc(TL.u(armed === k.id ? "t_sure" : "t_delete")) + "</button></td>" +
+        "<td style=\"white-space:nowrap\">★ " + TL.totalStars(k) + " / " + TL.TOPICS.length * 3 + "</td>";
+      TL.TOPICS.forEach(function (t) {
+        var p = k.progress[t.id];
+        if (p && (p.seen.length || p.attempts)) any = true;
+        if (p && p.attempts && p.total) { firstSum += p.first / p.total; bestSum += p.best / p.total; quizzes++; }
+        row += "<td>" + cell(p) + "</td>";
+      });
+      body += row + "</tr>";
+    });
+    body += "</tbody>";
+    document.getElementById("tbl").innerHTML = head + body;
+    document.getElementById("summary").textContent = !any ? TL.u("t_none") :
+      quizzes ? TL.u("t_summary", Math.round(firstSum / quizzes * 100), Math.round(bestSum / quizzes * 100), quizzes) : "";
+
+    Array.prototype.forEach.call(document.querySelectorAll(".del"), function (b) {
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-id");
+        if (armed === id) { TL.deleteProfile(id); armed = null; }
+        else armed = id;
+        render();
+      });
+    });
+  }
+
+  function csv() {
+    var rows = [[TL.u("t_child"), TL.u("t_topic"), TL.u("t_seen"), TL.u("t_first"), TL.u("t_best"), TL.u("t_tries"), TL.u("t_stars")]];
+    TL.profiles().forEach(function (k) {
+      TL.TOPICS.forEach(function (t) {
+        var p = k.progress[t.id];
+        if (!p) return;
+        rows.push([TL.profileName(k), TL.pick(t.title),
+          p.seen.length + "/" + (p.parts || ""),
+          p.attempts ? p.first + "/" + p.total : "", p.attempts ? p.best + "/" + p.total : "",
+          p.attempts || 0, TL.starsFor(t.id, k)]);
+      });
+    });
+    var text = "﻿" + rows.map(function (r) {
+      return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(",");
+    }).join("\r\n");
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+    a.download = "tech-lab-3d-progress.csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+  document.getElementById("csvBtn").addEventListener("click", csv);
+  TL.buildLangBar(document.getElementById("langbar"));
+  TL.bindThemeButton(document.getElementById("themeBtn"));
+  TL.bindSizeButton(document.getElementById("sizeBtn"));
+  TL.onLang(render);
+  window.addEventListener("pageshow", render);
+  render();
+})();
+</script>
+</body>
+</html>
