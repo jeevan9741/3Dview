@@ -759,6 +759,12 @@ window.TL = TL;
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("sw.js").catch(function () {});
     });
+    /* Naya service worker aaya (app update hua) to page ek baar khud reload ho,
+       taaki purani cached files (jaise purana bio.js) na dikhein */
+    var hadController = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (hadController && !reloaded) { reloaded = true; location.reload(); }
+    });
   }
 
   /* ================================================================
